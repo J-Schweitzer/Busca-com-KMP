@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-
 def metodo_basico(sequencia, padrao):
     """Realiza a busca pelo método básico de comparação."""
     ocorrencias = 0
