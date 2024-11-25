@@ -3,7 +3,7 @@ from tkinter import filedialog, messagebox
 
 def metodo_basico(sequencia, padrao):
     """Realiza a busca pelo método básico de comparação."""
-    ocorrencias = 0
+    ocorrencias = []
     comparacoes = 0
 
     for i in range(len(sequencia) - len(padrao) + 1):
@@ -14,7 +14,7 @@ def metodo_basico(sequencia, padrao):
                 match = False
                 break
         if match:
-            ocorrencias += 1
+            ocorrencias.append(i)  # Adiciona a posição onde a subsequência começa
 
     return ocorrencias, comparacoes
 
@@ -42,7 +42,7 @@ def calcular_lps(padrao):
 
 def metodo_kmp(sequencia, padrao):
     """Realiza a busca pelo algoritmo KMP."""
-    ocorrencias = 0
+    ocorrencias = []
     comparacoes = 0
 
     lps = calcular_lps(padrao)
@@ -56,7 +56,7 @@ def metodo_kmp(sequencia, padrao):
             j += 1
 
         if j == len(padrao):
-            ocorrencias += 1
+            ocorrencias.append(i - j)  # Adiciona a posição onde a subsequência começa
             j = lps[j - 1]
         elif i < len(sequencia) and padrao[j] != sequencia[i]:
             if j != 0:
@@ -83,15 +83,21 @@ def realizar_busca():
     ocorrencias_kmp, comparacoes_kmp = metodo_kmp(sequencia, padrao)
 
     # Exibe os resultados
-    messagebox.showinfo(
-        "Resultados da Busca",
+    resultado_texto = (
+        f"Resultado da Busca:\n\n"
+        f"----------------------------\n"
         f"Método Básico:\n"
-        f"Ocorrências: {ocorrencias_basico}\n"
-        f"Comparações: {comparacoes_basico}\n\n"
+        f"Ocorrências encontradas: {len(ocorrencias_basico)}\n"
+        f"Posições: {', '.join(map(str, ocorrencias_basico))}\n"
+        f"Comparações realizadas: {comparacoes_basico}\n\n"
+        f"----------------------------\n"
         f"Método KMP:\n"
-        f"Ocorrências: {ocorrencias_kmp}\n"
-        f"Comparações: {comparacoes_kmp}"
+        f"Ocorrências encontradas: {len(ocorrencias_kmp)}\n"
+        f"Posições: {', '.join(map(str, ocorrencias_kmp))}\n"
+        f"Comparações realizadas: {comparacoes_kmp}\n"
     )
+
+    messagebox.showinfo("Resultados da Busca", resultado_texto)
 
 
 def carregar_arquivo():
@@ -111,25 +117,37 @@ def carregar_arquivo():
 root = tk.Tk()
 root.title("Busca de Subsequências em DNA")
 
-frame = tk.Frame(root, padx=10, pady=10)
-frame.pack()
+# Adicionando estilo ao layout
+frame = tk.Frame(root, padx=15, pady=15)
+frame.pack(padx=10, pady=10)
 
-lbl_sequencia = tk.Label(frame, text="Sequência de DNA:")
-lbl_sequencia.grid(row=0, column=0, sticky="w")
+# Título
+titulo = tk.Label(frame, text="Busca de Subsequências em DNA", font=("Arial", 14, "bold"))
+titulo.grid(row=0, column=0, columnspan=2, pady=10)
 
-text_sequencia = tk.Text(frame, height=10, width=50)
-text_sequencia.grid(row=1, column=0, columnspan=2, pady=5)
+# Sequência de DNA
+lbl_sequencia = tk.Label(frame, text="Sequência de DNA:", font=("Arial", 10))
+lbl_sequencia.grid(row=1, column=0, sticky="w", padx=5)
 
-btn_carregar = tk.Button(frame, text="Carregar Arquivo", command=carregar_arquivo)
-btn_carregar.grid(row=2, column=0, columnspan=2, pady=5)
+text_sequencia = tk.Text(frame, height=8, width=50, wrap=tk.WORD)
+text_sequencia.grid(row=2, column=0, columnspan=2, pady=5)
 
-lbl_padrao = tk.Label(frame, text="Subsequência a buscar:")
-lbl_padrao.grid(row=3, column=0, sticky="w")
+btn_carregar = tk.Button(frame, text="Carregar Arquivo", command=carregar_arquivo, bg="#4CAF50", fg="white", font=("Arial", 10))
+btn_carregar.grid(row=3, column=0, columnspan=2, pady=5)
 
-entry_padrao = tk.Entry(frame, width=30)
-entry_padrao.grid(row=4, column=0, pady=5)
+# Subsequência a ser buscada
+lbl_padrao = tk.Label(frame, text="Subsequência a Buscar:", font=("Arial", 10))
+lbl_padrao.grid(row=4, column=0, sticky="w", padx=5)
 
-btn_buscar = tk.Button(frame, text="Buscar", command=realizar_busca)
-btn_buscar.grid(row=4, column=1, pady=5)
+entry_padrao = tk.Entry(frame, width=40, font=("Arial", 12))
+entry_padrao.grid(row=5, column=0, pady=5)
 
+btn_buscar = tk.Button(frame, text="Buscar", command=realizar_busca, bg="#2196F3", fg="white", font=("Arial", 10))
+btn_buscar.grid(row=5, column=1, padx=10, pady=5)
+
+# Rodapé com informações de uso
+rodape = tk.Label(frame, text="Desenvolvido para busca de subsequências em DNA", font=("Arial", 8), fg="#777")
+rodape.grid(row=6, column=0, columnspan=2, pady=10)
+
+# Inicia a aplicação
 root.mainloop()
