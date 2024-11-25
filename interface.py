@@ -1,134 +1,136 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
-import webbrowser
-import networkx as nx
-from pyvis.network import Network
 
-def identificar_alfabeto(arquivo):
-    """Identifica automaticamente o alfabeto presente no arquivo."""
-    alfabeto = set()
-    with open(arquivo, "r") as file:
-        for linha in file:
-            for letra in linha:
-                if letra != '\n' and letra.isprintable():  # Ignora quebras de linha e caracteres não imprimíveis
-                    alfabeto.add(letra)
-    return sorted(alfabeto)  # Ordena para facilitar a visualização
+
+def metodo_basico(sequencia, padrao):
+    """Realiza a busca pelo método básico de comparação."""
+    ocorrencias = 0
+    comparacoes = 0
+
+    for i in range(len(sequencia) - len(padrao) + 1):
+        match = True
+        for j in range(len(padrao)):
+            comparacoes += 1
+            if sequencia[i + j] != padrao[j]:
+                match = False
+                break
+        if match:
+            ocorrencias += 1
+
+    return ocorrencias, comparacoes
+
+
+def calcular_lps(padrao):
+    """Calcula o array de prefixo para o algoritmo KMP."""
+    lps = [0] * len(padrao)
+    comprimento = 0
+    i = 1
+
+    while i < len(padrao):
+        if padrao[i] == padrao[comprimento]:
+            comprimento += 1
+            lps[i] = comprimento
+            i += 1
+        else:
+            if comprimento != 0:
+                comprimento = lps[comprimento - 1]
+            else:
+                lps[i] = 0
+                i += 1
+
+    return lps
+
+
+def metodo_kmp(sequencia, padrao):
+    """Realiza a busca pelo algoritmo KMP."""
+    ocorrencias = 0
+    comparacoes = 0
+
+    lps = calcular_lps(padrao)
+    i = 0  # Índice na sequência
+    j = 0  # Índice no padrão
+
+    while i < len(sequencia):
+        comparacoes += 1
+        if padrao[j] == sequencia[i]:
+            i += 1
+            j += 1
+
+        if j == len(padrao):
+            ocorrencias += 1
+            j = lps[j - 1]
+        elif i < len(sequencia) and padrao[j] != sequencia[i]:
+            if j != 0:
+                j = lps[j - 1]
+            else:
+                i += 1
+
+    return ocorrencias, comparacoes
+
 
 def realizar_busca():
-    # Obtém o arquivo e a cadeia a partir da interface
-    arquivo = file_path.get()
-    cadeia = entry_cadeia.get()
+    """Executa a busca pelos dois métodos e exibe os resultados."""
+    sequencia = text_sequencia.get("1.0", tk.END).strip()
+    padrao = entry_padrao.get().strip()
 
-    if not arquivo or not cadeia:
-        messagebox.showwarning("Entrada inválida", "Selecione um arquivo e insira uma cadeia de busca.")
+    if not sequencia or not padrao:
+        messagebox.showwarning("Entrada inválida", "Insira a sequência de DNA e a subsequência a ser buscada.")
         return
 
-    # Identifica automaticamente o alfabeto a partir do arquivo
-    alfabeto = identificar_alfabeto(arquivo)
-    
-    if not alfabeto:
-        messagebox.showwarning("Alfabeto vazio", "Não foram encontrados caracteres no arquivo.")
-        return
+    # Busca pelo método básico
+    ocorrencias_basico, comparacoes_basico = metodo_basico(sequencia, padrao)
 
-    # Processa o arquivo para busca
-    with open(arquivo, "r") as file:
-        cmaior = [letra for linha in file for letra in linha if letra != '\n']
-    cmenor = [char for char in cadeia]
-
-    # Código de busca SEM autômato
-    qtd_ocorrencias_sem, qtd_comparacoes_sem = 0, 0
-    for i in range(len(cmaior)):
-        achou = True
-        for j in range(len(cmenor)):
-            if (i + j) == len(cmaior):
-                achou = False
-                break
-            qtd_comparacoes_sem += 1
-            if cmenor[j] != cmaior[i + j]:
-                achou = False
-        if achou:
-            qtd_ocorrencias_sem += 1
-
-    # Código de busca COM autômato
-    def maiorPrefSufProprio(cadeia):
-        maior = 0
-        for i in reversed(range(len(cadeia) - 1)):
-            prefixo, sufixo = cadeia[:(i + 1)], cadeia[-(i + 1):]
-            if prefixo == sufixo and len(prefixo) > maior:
-                maior = len(prefixo)
-                break
-        return maior
-
-    def criaTransicoes(cadeia, alfabeto):
-        sub, transicoes = "", []
-        for estado in range(len(cadeia) + 1):
-            letra_correta = cadeia[estado] if estado < len(cadeia) else 'FIM'
-            for letra_alternativa in alfabeto:
-                proximo = estado + 1 if letra_alternativa == letra_correta else maiorPrefSufProprio(sub + letra_alternativa)
-                transicao = ['s' + str(estado), letra_alternativa, 's' + str(proximo)]
-                transicoes.append(transicao)
-            sub += letra_correta
-        return transicoes
-
-    estados = ['s' + str(n) for n in range(len(cadeia) + 1)]
-    inicial, finais = estados[:1], estados[-1:]
-    transicoes = criaTransicoes(cadeia, alfabeto)
-    dtransicoes = dict(((e1, e2), s) for e1, e2, s in transicoes)
-
-    qtd_ocorrencias_com, qtd_comparacoes_com, estado = 0, 0, inicial[0]
-    for i in range(len(cmaior)):
-        if estado in finais:
-            qtd_ocorrencias_com += 1
-        simbolo = cmaior[i]
-        estado = dtransicoes.get((estado, simbolo), None)
-        if estado is None:
-            break
-        qtd_comparacoes_com += 1
-
-    if estado in finais:
-        qtd_ocorrencias_com += 1
+    # Busca pelo método KMP
+    ocorrencias_kmp, comparacoes_kmp = metodo_kmp(sequencia, padrao)
 
     # Exibe os resultados
-    messagebox.showinfo("Resultado", f"Ocorrências SEM autômato: {qtd_ocorrencias_sem}\nComparações SEM autômato: {qtd_comparacoes_sem}\nOcorrências COM autômato: {qtd_ocorrencias_com}\nComparações COM autômato: {qtd_comparacoes_com}")
-    
-    # Visualização do autômato
-    G = nx.DiGraph()
-    for estado in estados:
-        G.add_node(estado, color="red" if estado in finais else "blue")
-    for v in transicoes:
-        G.add_edge(v[0], v[2], label=v[1])
+    messagebox.showinfo(
+        "Resultados da Busca",
+        f"Método Básico:\n"
+        f"Ocorrências: {ocorrencias_basico}\n"
+        f"Comparações: {comparacoes_basico}\n\n"
+        f"Método KMP:\n"
+        f"Ocorrências: {ocorrencias_kmp}\n"
+        f"Comparações: {comparacoes_kmp}"
+    )
 
-    nt = Network('500px', '800px', directed=True)
-    nt.from_nx(G)
-    nt.write_html("G.html")
-    webbrowser.open("G.html")
 
-def selecionar_arquivo():
-    file_selected = filedialog.askopenfilename()
-    file_path.set(file_selected)
+def carregar_arquivo():
+    """Carrega uma sequência de DNA de um arquivo."""
+    file_path = filedialog.askopenfilename(
+        title="Selecione o arquivo de DNA",
+        filetypes=(("Arquivos de texto", "*.txt"), ("Todos os arquivos", "*.*"))
+    )
+    if file_path:
+        with open(file_path, "r") as file:
+            sequencia = file.read().replace("\n", "").strip()
+            text_sequencia.delete("1.0", tk.END)
+            text_sequencia.insert(tk.END, sequencia)
 
-# Configuração da interface
+
+# Configuração da interface gráfica
 root = tk.Tk()
-root.title("Busca em Arquivo")
+root.title("Busca de Subsequências em DNA")
 
 frame = tk.Frame(root, padx=10, pady=10)
-frame.pack(padx=10, pady=10)
+frame.pack()
 
-file_path = tk.StringVar()
+lbl_sequencia = tk.Label(frame, text="Sequência de DNA:")
+lbl_sequencia.grid(row=0, column=0, sticky="w")
 
-btn_arquivo = tk.Button(frame, text="Selecionar Arquivo", command=selecionar_arquivo)
-btn_arquivo.grid(row=0, column=0, padx=5, pady=5)
+text_sequencia = tk.Text(frame, height=10, width=50)
+text_sequencia.grid(row=1, column=0, columnspan=2, pady=5)
 
-entry_file = tk.Entry(frame, textvariable=file_path, width=40)
-entry_file.grid(row=0, column=1, padx=5, pady=5)
+btn_carregar = tk.Button(frame, text="Carregar Arquivo", command=carregar_arquivo)
+btn_carregar.grid(row=2, column=0, columnspan=2, pady=5)
 
-lbl_cadeia = tk.Label(frame, text="Cadeia a ser buscada:")
-lbl_cadeia.grid(row=1, column=0, padx=5, pady=5)
+lbl_padrao = tk.Label(frame, text="Subsequência a buscar:")
+lbl_padrao.grid(row=3, column=0, sticky="w")
 
-entry_cadeia = tk.Entry(frame)
-entry_cadeia.grid(row=1, column=1, padx=5, pady=5)
+entry_padrao = tk.Entry(frame, width=30)
+entry_padrao.grid(row=4, column=0, pady=5)
 
 btn_buscar = tk.Button(frame, text="Buscar", command=realizar_busca)
-btn_buscar.grid(row=2, columnspan=2, pady=10)
+btn_buscar.grid(row=4, column=1, pady=5)
 
 root.mainloop()
